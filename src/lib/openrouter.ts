@@ -1,109 +1,93 @@
-import { StockData } from '@/types'
+// src/lib/openrouter.ts
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+export async function analyzeStock(ticker: string, stockData: any, apiKey: string, agentType: string) {
+  
+  let systemPrompt = "";
+  
+  // INSTRUKSI KETAT: Memaksa AI menggunakan gaya akademis dan melarang emotikon
+  const baseRules = `
+    STRICT RULES:
+    1. STRICTLY NO EMOJIS. Do not use any emojis, unicode icons, or graphical symbols under any circumstances.
+    2. Tone: Highly professional, academic, objective, and institutional (like a Bloomberg or Goldman Sachs report).
+    3. Formatting: Use clear Markdown. Use **bold** for key metrics, risk factors, and important terms. Use bullet points for lists.
+    4. Structure: Use Header 3 (###) for main sections.
+  `;
 
-interface OpenRouterMessage {
-  role: 'system' | 'user'
-  content: string
-}
-
-interface AnalysisPromptParams {
-  ticker: string
-  stockData: StockData
-}
-
-export function buildAnalysisPrompt({ ticker, stockData }: AnalysisPromptParams): OpenRouterMessage[] {
-  const systemPrompt: OpenRouterMessage = {
-    role: 'system',
-    content: `You are a professional financial analyst with expertise in quantitative analysis and risk management. Your role is to provide clear, actionable insights about stocks based on the provided financial data.
-
-When analyzing stock data, you should cover:
-1. Company Overview - Brief description of the company and its business
-2. Quantitative Analysis - Interpretation of key metrics (P/E, Market Cap, EPS, etc.)
-3. Risk Assessment - Volatility analysis, potential risks, and concerns
-4. Investment Strategy - Bullish, Neutral, or Bearish recommendation with reasoning
-
-Always provide balanced, evidence-based analysis. Include specific numbers from the data when making points.
-Format your response using clear headings and bullet points for readability.
-Keep your analysis concise but informative (300-500 words).`
+  if (agentType === 'technical') {
+    systemPrompt = `You are an elite Quantitative & Technical Trading Analyst. 
+    Your core directive: Analyze the price action, volatility, moving averages, and statistical risk levels. 
+    Do not focus on company fundamentals. 
+    
+    ${baseRules}
+    
+    Required Output Structure:
+    ### 1. Quantitative Overview
+    ### 2. Volatility & Momentum Analysis
+    ### 3. Risk Management Strategy
+    ### 4. Technical Verdict (Buy/Sell/Hold with defined zones)
+    `;
+  } else {
+    systemPrompt = `You are an elite Value Investing & Fundamental Analyst.
+    Your core directive: Analyze intrinsic value, valuation multiples (P/E), market cap, yields, and macroeconomic positioning.
+    Do not focus on short-term chart patterns.
+    
+    ${baseRules}
+    
+    Required Output Structure:
+    ### 1. Fundamental Overview
+    ### 2. Valuation Analysis
+    ### 3. Long-term Risk Assessment
+    ### 4. Investment Verdict (Undervalued/Fairly Valued/Overvalued)
+    `;
   }
 
-  const userPrompt: OpenRouterMessage = {
-    role: 'user',
-    content: `Analyze the following stock data for ${ticker} (${stockData.companyName}):
+  const userPrompt = `
+  Please provide a comprehensive analysis for the following asset: **${ticker}** (${stockData.companyName})
 
-**Current Market Data:**
-- Current Price: $${stockData.currentPrice.toFixed(2)}
-- Market Cap: $${formatMarketCap(stockData.marketCap)}
-- P/E Ratio: ${stockData.peRatio?.toFixed(2) || 'N/A'}
-- EPS (TTM): $${stockData.eps?.toFixed(2) || 'N/A'}
-- Dividend Yield: ${stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) + '%' : 'N/A'}
-- 52-Week Range: $${stockData.week52Low?.toFixed(2)} - $${stockData.week52High?.toFixed(2)}
-- Daily Volume: ${formatVolume(stockData.volume)}
-- Sector: ${stockData.sector}
-- Industry: ${stockData.industry}
+  **Market Data:**
+  - Current Price: $${stockData.currentPrice}
+  - 52-Week High: $${stockData.week52High}
+  - 52-Week Low: $${stockData.week52Low}
+  - Market Cap: $${stockData.marketCap}
+  - P/E Ratio: ${stockData.peRatio || 'N/A'}
+  - EPS: ${stockData.eps || 'N/A'}
+  - Dividend Yield: ${stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) + '%' : 'N/A'}
 
-Please provide a comprehensive analysis covering company overview, quantitative metrics interpretation, risk assessment, and investment strategy recommendation.`
-  }
-
-  return [systemPrompt, userPrompt]
-}
-
-function formatMarketCap(value: number): string {
-  if (!value) return 'N/A'
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`
-  return `$${value.toLocaleString()}`
-}
-
-function formatVolume(value: number): string {
-  if (!value) return 'N/A'
-  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`
-  return value.toLocaleString()
-}
-
-export async function analyzeStock(
-  ticker: string,
-  stockData: StockData,
-  apiKey: string
-): Promise<string> {
-  const messages = buildAnalysisPrompt({ ticker, stockData })
+  **Quantitative Indicators (Last 30 Days):**
+  - 20-Day SMA: $${stockData.quantitative?.sma20?.toFixed(2) || 'N/A'}
+  - 30-Day Volatility (Std Dev): ${stockData.quantitative?.volatility?.toFixed(2) || 'N/A'}
+  - Calculated Risk Level: ${stockData.quantitative?.riskLevel || 'Unknown'}
+  `;
 
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://quantai.app',
-        'X-Title': 'QuantAI',
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        // Direkomendasikan oleh OpenRouter
+        "HTTP-Referer": "https://quantai.vercel.app", 
+        "X-Title": "QuantAI Terminal"
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
-        messages,
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    })
+        model: "anthropic/claude-3-haiku", // Model ini sangat patuh pada instruksi format
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.2 // Diturunkan agar AI lebih analitis dan tidak terlalu kreatif/bertele-tele
+      })
+    });
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('OpenRouter API error:', error)
-      throw new Error('Failed to get AI analysis')
+      const errorText = await response.text();
+      throw new Error(`OpenRouter API Error: ${errorText}`);
     }
 
-    const data = await response.json()
-
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from AI')
-    }
-
-    return data.choices[0].message.content
-  } catch (error) {
-    console.error('Error in AI analysis:', error)
-    throw error
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error: any) {
+    console.error("[OpenRouter] Error:", error.message);
+    throw new Error("Failed to generate AI analysis. Please try again.");
   }
 }

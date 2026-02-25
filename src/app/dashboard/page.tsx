@@ -1,444 +1,288 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react'
-import Link from 'next/link'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
-import { AnalysisResult, StockData } from '@/types'
-import {
-  BarChart3,
-  Search,
+import { useRouter } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import { 
+  LayoutDashboard, 
+  Bot, 
+  Settings, 
+  LogOut, 
+  Send, 
   TrendingUp,
-  Shield,
-  Target,
-  Brain,
-  Clock,
-  Trash2,
-  LogOut,
-  ChevronRight,
-  Loader2,
-  AlertCircle,
-  DollarSign,
-  PieChart,
   Activity,
-  ArrowUpRight,
-  ArrowDownRight,
+  Briefcase,
+  AlertTriangle,
+  BarChart2
 } from 'lucide-react'
 
 export default function Dashboard() {
   const [ticker, setTicker] = useState('')
+  const [analysis, setAnalysis] = useState('')
+  const [stockData, setStockData] = useState<any>(null) // State untuk menyimpan data kuantitatif
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
-  const [history, setHistory] = useState<AnalysisResult[]>([])
-  const [user, setUser] = useState<any>(null)
-  const [showHistory, setShowHistory] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  
+  const [agentType, setAgentType] = useState('fundamental')
+  const [activeMenu, setActiveMenu] = useState('dashboard')
 
+  const router = useRouter()
   const supabase = createClient()
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    checkUser()
-    fetchHistory()
-  }, [])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    setUser(user)
-  }
-
-  const fetchHistory = async () => {
-    try {
-      const response = await fetch('/api/history')
-      const data = await response.json()
-      if (data.success) {
-        setHistory(data.data)
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/signin')
+      } else {
+        setUserEmail(user.email || 'User')
       }
-    } catch (err) {
-      console.error('Error fetching history:', err)
     }
+    getUser()
+  }, [router, supabase])
+
+  // Otomatis scroll ke bawah saat AI sedang mengetik/selesai
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [analysis, loading])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
   }
 
-  const handleAnalyze = async (e: FormEvent) => {
+  const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!ticker.trim()) return
+    if (!ticker) return
 
     setLoading(true)
     setError('')
-    setAnalysis(null)
+    setAnalysis('')
+    setStockData(null)
 
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker.trim() }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker, agentType }), 
       })
 
       const data = await response.json()
 
-      if (data.success) {
-        setAnalysis(data.data)
-        if (data.data.userId) {
-          fetchHistory()
-        }
-      } else {
-        setError(data.error || 'Failed to analyze stock')
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze stock')
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.')
+
+      setAnalysis(data.analysis)
+      setStockData(data.data) // Menyimpan data kuantitatif dari API
+    } catch (err: any) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDeleteHistory = async (id: string) => {
-    try {
-      const response = await fetch(`/api/history?id=${id}`, {
-        method: 'DELETE',
-      })
-      const data = await response.json()
-      if (data.success) {
-        setHistory(history.filter((item) => item.id !== id))
-        if (analysis?.id === id) {
-          setAnalysis(null)
-        }
-      }
-    } catch (err) {
-      console.error('Error deleting analysis:', err)
-    }
-  }
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setHistory([])
-  }
-
-  const formatMarketCap = (value: number): string => {
-    if (!value) return 'N/A'
-    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`
-    return `$${value.toLocaleString()}`
-  }
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  const parseMarkdown = (text: string) => {
-    // Simple markdown parsing
-    return text
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-slate-900 mb-4">$1</h1>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold text-slate-900 mb-3 mt-6">$1</h2>')
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold text-slate-800 mb-2 mt-4">$1</h3>')
-      .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold">$1</strong>')
-      .replace(/\*(.*?)\*/gim, '<em class="italic">$1</em>')
-      .replace(/^- (.*$)/gim, '<li class="ml-4 text-slate-600">$1</li>')
-      .replace(/^\d+\. (.*$)/gim, '<li class="ml-4 text-slate-600">$1</li>')
-      .replace(/\n/gim, '<br />')
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-slate-900">QuantAI</span>
-              </Link>
+    <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans">
+      
+      {/* SIDEBAR (Monochrome Professional) */}
+      <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col justify-between hidden md:flex">
+        <div>
+          {/* Logo Area */}
+          <div className="h-16 flex items-center px-6 border-b border-zinc-100">
+            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center mr-3">
+              <TrendingUp className="text-white w-5 h-5" />
             </div>
+            <span className="font-bold text-xl tracking-tight text-zinc-900">QuantAI</span>
+          </div>
 
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  <span className="text-sm text-slate-600">{user.email}</span>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center text-slate-600 hover:text-slate-900 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/signin" className="text-slate-600 hover:text-slate-900 transition-colors">
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
+          {/* Navigation Menu */}
+          <nav className="p-4 space-y-1">
+            <button 
+              onClick={() => setActiveMenu('dashboard')}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors ${activeMenu === 'dashboard' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span>Workspace</span>
+            </button>
+            <button 
+              onClick={() => setActiveMenu('agents')}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors ${activeMenu === 'agents' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}
+            >
+              <Bot className="w-5 h-5" />
+              <span>Agent Market</span>
+            </button>
+            <button 
+              onClick={() => setActiveMenu('settings')}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors ${activeMenu === 'settings' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}
+            >
+              <Settings className="w-5 h-5" />
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* User Profile */}
+        <div className="p-4 border-t border-zinc-200 bg-zinc-50">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Account</span>
+              <span className="text-sm font-semibold truncate text-zinc-900">{userEmail}</span>
             </div>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-100 text-zinc-700 rounded-md transition-colors text-sm font-medium shadow-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
         </div>
-      </nav>
+      </aside>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Search Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Analyze Stock</h2>
-              <form onSubmit={handleAnalyze} className="flex gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                    type="text"
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    placeholder="Enter stock ticker (e.g., AAPL)"
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg uppercase"
-                  />
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 flex flex-col relative h-full overflow-hidden bg-white">
+        
+        {/* Top Header & Agent Selector */}
+        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-zinc-200 z-10 sticky top-0">
+          <h1 className="text-lg font-bold text-zinc-800">
+            {activeMenu === 'dashboard' ? 'Analysis Terminal' : 'Menu'}
+          </h1>
+          
+          <div className="flex items-center space-x-1 bg-zinc-100 p-1 rounded-lg border border-zinc-200">
+            <button 
+              onClick={() => setAgentType('fundamental')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center space-x-2 ${agentType === 'fundamental' ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200' : 'text-zinc-500 hover:text-zinc-700'}`}
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Warren (Value)</span>
+            </button>
+            <button 
+              onClick={() => setAgentType('technical')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center space-x-2 ${agentType === 'technical' ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200' : 'text-zinc-500 hover:text-zinc-700'}`}
+            >
+              <Activity className="w-4 h-4" />
+              <span>Quant (Tech)</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Chat / Analysis Result Area */}
+        <div className="flex-1 overflow-y-auto p-8 pb-40">
+          {activeMenu === 'dashboard' && (
+            <div className="max-w-4xl mx-auto">
+              
+              {!analysis && !loading && !error && (
+                <div className="flex flex-col items-center justify-center h-64 text-center mt-20">
+                  <div className="w-16 h-16 bg-zinc-100 border border-zinc-200 text-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                    <Bot className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-zinc-900 mb-2">Initiate Analysis</h2>
+                  <p className="text-zinc-500 max-w-md">
+                    Enter a stock or crypto ticker below. Our <strong className="text-zinc-800">{agentType === 'fundamental' ? 'Value Investing' : 'Quantitative Trading'}</strong> agent is ready to process market data.
+                  </p>
                 </div>
-                <button
-                  type="submit"
-                  disabled={loading || !ticker.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="w-5 h-5 mr-2" />
-                      Analyze
-                    </>
-                  )}
-                </button>
-              </form>
+              )}
+
+              {loading && (
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center shrink-0 shadow-md">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex flex-col space-y-3 w-full max-w-2xl bg-zinc-50 p-6 rounded-2xl border border-zinc-200 animate-pulse">
+                    <div className="h-4 bg-zinc-200 rounded w-1/4"></div>
+                    <div className="h-3 bg-zinc-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-zinc-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              )}
 
               {error && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center text-red-700">
-                  <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                  {error}
+                <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200 flex items-center space-x-3 mb-6">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <span className="font-semibold text-sm">{error}</span>
                 </div>
               )}
-            </div>
 
-            {/* Analysis Results */}
-            {analysis && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden animate-fadeIn">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-white">{analysis.ticker}</h2>
-                      <p className="text-blue-100">{analysis.companyName}</p>
+              {stockData && analysis && !loading && (
+                <div className="space-y-6">
+                  {/* QUANTITATIVE DASHBOARD CARD */}
+                  <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center space-x-2 mb-4 pb-4 border-b border-zinc-100">
+                      <BarChart2 className="w-5 h-5 text-zinc-700" />
+                      <h3 className="font-bold text-zinc-900">Quantitative Overview: {stockData.symbol}</h3>
                     </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-white">
-                        ${analysis.stockData.currentPrice.toFixed(2)}
-                      </p>
-                      <p className="text-blue-100 text-sm">Current Price</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-slate-50 border-b border-slate-100">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mx-auto mb-2">
-                      <DollarSign className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <p className="text-lg font-semibold text-slate-900">{formatMarketCap(analysis.stockData.marketCap)}</p>
-                    <p className="text-xs text-slate-500">Market Cap</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mx-auto mb-2">
-                      <TrendingUp className="w-5 h-5 text-green-600" />
-                    </div>
-                    <p className="text-lg font-semibold text-slate-900">
-                      {analysis.stockData.peRatio ? analysis.stockData.peRatio.toFixed(2) : 'N/A'}
-                    </p>
-                    <p className="text-xs text-slate-500">P/E Ratio</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-10 h-10 bg-purple-100 rounded-lg mx-auto mb-2">
-                      <Activity className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <p className="text-lg font-semibold text-slate-900">
-                      ${analysis.stockData.eps ? analysis.stockData.eps.toFixed(2) : 'N/A'}
-                    </p>
-                    <p className="text-xs text-slate-500">EPS</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-10 h-10 bg-amber-100 rounded-lg mx-auto mb-2">
-                      <PieChart className="w-5 h-5 text-amber-600" />
-                    </div>
-                    <p className="text-lg font-semibold text-slate-900">
-                      {analysis.stockData.dividendYield
-                        ? (analysis.stockData.dividendYield * 100).toFixed(2)
-                        : '0'}%
-                    </p>
-                    <p className="text-xs text-slate-500">Dividend</p>
-                  </div>
-                </div>
-
-                {/* 52 Week Range */}
-                <div className="p-6 border-b border-slate-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-600">52-Week Range</span>
-                    <span className="text-sm text-slate-900">
-                      ${analysis.stockData.week52Low?.toFixed(2)} - ${analysis.stockData.week52High?.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-500 to-blue-500 rounded-full"
-                      style={{
-                        width: `${((analysis.stockData.currentPrice - analysis.stockData.week52Low) /
-                          (analysis.stockData.week52High - analysis.stockData.week52Low)) *
-                          100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* AI Analysis */}
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Brain className="w-6 h-6 text-blue-600 mr-2" />
-                    <h3 className="text-lg font-semibold text-slate-900">AI Analysis</h3>
-                  </div>
-                  <div
-                    className="prose prose-slate max-w-none text-slate-600"
-                    dangerouslySetInnerHTML={{ __html: parseMarkdown(analysis.aiAnalysis) }}
-                  />
-                </div>
-
-                {/* Timestamp */}
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center text-sm text-slate-500">
-                  <Clock className="w-4 h-4 mr-2" />
-                  Analyzed on {formatDate(analysis.createdAt)}
-                </div>
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!analysis && !loading && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No Analysis Yet</h3>
-                <p className="text-slate-600 mb-4">
-                  Enter a stock ticker above to get AI-powered analysis
-                </p>
-                <div className="flex items-center justify-center gap-4 text-sm text-slate-500">
-                  <span>Try: AAPL, GOOGL, MSFT, TSLA, AMZN</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Features Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <h3 className="font-semibold text-slate-900 mb-4">Analysis Features</h3>
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Quantitative Analysis</p>
-                    <p className="text-sm text-slate-500">P/E, Market Cap, EPS metrics</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <Shield className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Risk Assessment</p>
-                    <p className="text-sm text-slate-500">Volatility & range analysis</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <Target className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Strategy Recommendation</p>
-                    <p className="text-sm text-slate-500">Bullish/Neutral/Bearish</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* History Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-900">Recent Analyses</h3>
-                {history.length > 0 && (
-                  <button
-                    onClick={() => setShowHistory(!showHistory)}
-                    className="text-sm text-blue-600 hover:text-blue-700"
-                  >
-                    {showHistory ? 'Hide' : 'Show All'}
-                  </button>
-                )}
-              </div>
-
-              {history.length > 0 ? (
-                <div className="space-y-3">
-                  {(showHistory ? history : history.slice(0, 5)).map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900">{item.ticker}</p>
-                        <p className="text-xs text-slate-500">{formatDate(item.createdAt)}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                        <p className="text-xs text-zinc-500 font-medium uppercase mb-1">Current Price</p>
+                        <p className="text-xl font-bold text-zinc-900">${stockData.currentPrice?.toFixed(2)}</p>
                       </div>
-                      <button
-                        onClick={() => handleDeleteHistory(item.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                        <p className="text-xs text-zinc-500 font-medium uppercase mb-1">20-Day SMA</p>
+                        <p className="text-xl font-bold text-zinc-900">${stockData.quantitative?.sma20?.toFixed(2) || 'N/A'}</p>
+                      </div>
+                      <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                        <p className="text-xs text-zinc-500 font-medium uppercase mb-1">Volatility</p>
+                        <p className="text-xl font-bold text-zinc-900">{stockData.quantitative?.volatility?.toFixed(2) || 'N/A'}</p>
+                      </div>
+                      <div className={`p-4 rounded-xl border ${stockData.quantitative?.riskLevel === 'High' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-green-50 border-green-100 text-green-800'}`}>
+                        <p className="text-xs font-medium uppercase mb-1 opacity-70">Risk Level</p>
+                        <p className="text-xl font-bold">{stockData.quantitative?.riskLevel || 'Unknown'}</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500 text-center py-4">
-                  {user ? 'No analysis history yet' : 'Sign in to save your analysis history'}
-                </p>
-              )}
+                  </div>
 
-              {!user && history.length === 0 && (
-                <Link
-                  href="/auth/signup"
-                  className="mt-4 w-full block text-center bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Sign Up to Save History
-                </Link>
+                  {/* AI ANALYSIS BUBBLE */}
+                  <div className="flex items-start space-x-4">
+                    <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center shrink-0 shadow-md">
+                      <Bot className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="bg-white p-8 rounded-3xl rounded-tl-none shadow-sm border border-zinc-200 prose prose-zinc max-w-none text-zinc-800">
+                      {/* REACT-MARKDOWN RENDERING */}
+                      <ReactMarkdown>
+                        {analysis}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
               )}
+              <div ref={chatEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Input Area */}
+        {activeMenu === 'dashboard' && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent pt-10 pb-8 px-8">
+            <div className="max-w-4xl mx-auto relative">
+              <form onSubmit={handleAnalyze} className="relative flex items-center shadow-lg rounded-full bg-white border border-zinc-300 focus-within:border-zinc-500 focus-within:ring-4 focus-within:ring-zinc-100 transition-all">
+                <input
+                  type="text"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value)}
+                  placeholder="Enter ticker (e.g. AAPL, NVDA, BTC-USD)..."
+                  disabled={loading}
+                  className="w-full pl-6 pr-16 py-4 bg-transparent text-zinc-900 placeholder-zinc-400 focus:outline-none disabled:opacity-50 text-lg font-medium"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !ticker}
+                  className="absolute right-2 p-3 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white rounded-full transition-colors flex items-center justify-center"
+                >
+                  <Send className="w-5 h-5 ml-1" />
+                </button>
+              </form>
+              <p className="text-center text-xs text-zinc-400 mt-3 font-medium">
+                QuantAI Agents process data mathematically. Always conduct your own verification.
+              </p>
             </div>
           </div>
-        </div>
-      </div>
+        )}
+
+      </main>
     </div>
   )
 }

@@ -1,85 +1,101 @@
-import { StockData } from '@/types'
+// src/lib/stocks.ts
 
-// Yahoo Finance API endpoint
-const YAHOO_FINANCE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/'
+// Variabel global untuk menyimpan sesi auth Yahoo sementara di memori server
+let globalCookie = '';
+let globalCrumb = '';
 
-export async function fetchStockData(ticker: string): Promise<StockData | null> {
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+// Fungsi untuk menembus proteksi 401 Yahoo Finance
+async function getYahooAuth() {
+  // Gunakan cache jika token masih ada
+  if (globalCrumb && globalCookie) return { cookie: globalCookie, crumb: globalCrumb };
+  
   try {
-    const response = await fetch(
-      `${YAHOO_FINANCE_URL}${ticker.toUpperCase()}?interval=1d&range=5d`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      console.error('Yahoo Finance API error:', response.status)
-      return null
+    // 1. Menyamar dan mengambil Cookie pertama
+    const cookieRes = await fetch('https://fc.yahoo.com', {
+      headers: { 'User-Agent': USER_AGENT },
+      cache: 'no-store'
+    });
+    
+    const setCookie = cookieRes.headers.get('set-cookie');
+    if (setCookie) {
+      globalCookie = setCookie.split(';')[0];
     }
 
-    const data = await response.json()
-
-    if (!data.chart?.result?.[0]) {
-      return null
-    }
-
-    const result = data.chart.result[0]
-    const meta = result.meta
-    const quote = result.indicators?.quote?.[0]
-
-    // Get company info from meta or use ticker as fallback
-    const companyName = meta.shortName || meta.symbol || ticker.toUpperCase()
-
-    return {
-      symbol: meta.symbol,
-      companyName: companyName,
-      currentPrice: meta.regularMarketPrice || 0,
-      marketCap: meta.marketCap || 0,
-      peRatio: meta.trailingPE || 0,
-      eps: meta.epsTrailingTwelveMonths || 0,
-      dividendYield: meta.dividendYield || 0,
-      week52High: meta.fiftyTwoWeekHigh || 0,
-      week52Low: meta.fiftyTwoWeekLow || 0,
-      volume: meta.regularMarketVolume || 0,
-      sector: meta.sector || 'Unknown',
-      industry: meta.industry || 'Unknown',
-    }
+    // 2. Menggunakan Cookie untuk meminta token 'Crumb'
+    const crumbRes = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+      headers: { 
+        'User-Agent': USER_AGENT, 
+        'Cookie': globalCookie 
+      },
+      cache: 'no-store'
+    });
+    
+    globalCrumb = await crumbRes.text();
   } catch (error) {
-    console.error('Error fetching stock data:', error)
-    return null
+    console.error('[Auth] Gagal mengambil Yahoo Crumb:', error);
   }
+  
+  return { cookie: globalCookie, crumb: globalCrumb };
 }
 
-// Alternative: Use a simpler endpoint for basic quote data
-export async function fetchQuoteData(ticker: string): Promise<StockData | null> {
+export async function fetchQuoteData(ticker: string): Promise<any | null> {
   try {
-    // Using Yahoo Finance quote endpoint
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${ticker.toUpperCase()}`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
+    const symbol = ticker.toUpperCase().trim();
+    
+    // Ambil tiket masuk (Cookie & Crumb) sebelum meminta data
+    const { cookie, crumb } = await getYahooAuth();
+
+    const headers = {
+      'User-Agent': USER_AGENT,
+      'Cookie': cookie,
+      'Accept': 'application/json'
+    };
+
+    // 1. MENGAMBIL DATA FUNDAMENTAL (Sekarang anti 401 karena ada crumb & cookie)
+    const quoteUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbol}&crumb=${crumb}`;
+    const quoteRes = await fetch(quoteUrl, { headers, cache: 'no-store' });
+    
+    if (!quoteRes.ok) {
+      throw new Error(`Fundamental API returned status: ${quoteRes.status}`);
+    }
+    
+    const quoteData = await quoteRes.json();
+    const quote = quoteData.quoteResponse?.result?.[0];
+
+    if (!quote) {
+      return null; // Ticker tidak ditemukan
+    }
+
+    // 2. MENGAMBIL DATA HISTORIS 30 HARI UNTUK KALKULASI KUANTITATIF
+    const chartUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d&crumb=${crumb}`;
+    const chartRes = await fetch(chartUrl, { headers, cache: 'no-store' });
+    
+    let sma20 = 0;
+    let volatility = 0;
+    let riskLevel = 'Unknown';
+
+    if (chartRes.ok) {
+      const chartData = await chartRes.json();
+      const result = chartData.chart?.result?.[0];
+      const closePrices = result?.indicators?.quote?.[0]?.close?.filter((p: number | null) => p !== null) || [];
+
+      if (closePrices.length > 0) {
+        // Kalkulasi Matematika
+        const sum = closePrices.reduce((a: number, b: number) => a + b, 0);
+        sma20 = sum / closePrices.length;
+        const mean = sma20;
+        const variance = closePrices.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / closePrices.length;
+        volatility = Math.sqrt(variance);
+        riskLevel = volatility > (mean * 0.05) ? 'High' : 'Low';
       }
-    )
-
-    if (!response.ok) {
-      return null
     }
 
-    const data = await response.json()
-
-    if (!data.quoteResponse?.result?.[0]) {
-      return null
-    }
-
-    const quote = data.quoteResponse.result[0]
-
+    // 3. MERAKIT DATA
     return {
       symbol: quote.symbol,
-      companyName: quote.shortName || quote.longName || quote.symbol,
+      companyName: quote.shortName || quote.longName || symbol,
       currentPrice: quote.regularMarketPrice || 0,
       marketCap: quote.marketCap || 0,
       peRatio: quote.trailingPE || 0,
@@ -88,11 +104,15 @@ export async function fetchQuoteData(ticker: string): Promise<StockData | null> 
       week52High: quote.fiftyTwoWeekHigh || 0,
       week52Low: quote.fiftyTwoWeekLow || 0,
       volume: quote.regularMarketVolume || 0,
-      sector: quote.sector || 'Unknown',
-      industry: quote.industry || 'Unknown',
-    }
-  } catch (error) {
-    console.error('Error fetching quote data:', error)
-    return null
+      quantitative: {
+        sma20,
+        volatility,
+        riskLevel
+      }
+    };
+
+  } catch (error: any) {
+    console.error(`[stocks.ts] Native Fetch Error for ${ticker}:`, error.message);
+    return null;
   }
 }
