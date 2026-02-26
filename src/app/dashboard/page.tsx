@@ -130,7 +130,7 @@ export default function Dashboard() {
   }
 
   const executeAnalysis = async (targetTicker: string, specificAgentType?: string) => {
-    setLoading(true); setError(''); setAnalysis(''); setStockData(null); setTicker(targetTicker)
+    setLoading(true); setError(''); setAnalysis(''); setStockData(null); setTicker('')
     const currentAgentType = specificAgentType || agentType;
     try {
       const res = await fetch('/api/analyze', {
