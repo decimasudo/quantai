@@ -12,6 +12,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@react-three/drei": "^9.121.4",
+    "@react-three/fiber": "^8.17.10",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.0",
     "class-variance-authority": "^0.7.1",
@@ -23,7 +25,8 @@
     "react-dom": "^18.3.1",
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.6.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/node": "^20",
