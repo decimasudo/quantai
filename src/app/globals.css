@@ -181,7 +181,9 @@ a {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    /* v3 uses ring-offset or simple outline-none; 
+       if you want the ring color with opacity, use this: */
+    @apply border-border outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
   }
   body {
     @apply bg-background text-foreground;
