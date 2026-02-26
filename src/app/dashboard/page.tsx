@@ -9,6 +9,11 @@ import { Send, Bot, Briefcase, Activity, AlertTriangle, ChevronDown, Layout } fr
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { QuantCard } from '@/components/dashboard/QuantCard'
 import { PriceChart } from '@/components/dashboard/PriceChart'
+import { DashboardView } from '@/components/dashboard/DashboardView'
+import { AgentsView } from '@/components/dashboard/AgentsView'
+import { SettingsView } from '@/components/dashboard/SettingsView'
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
+import { TickerSelector } from '@/components/dashboard/TickerSelector'
 
 const SUPPORTED_TICKERS = [
   { symbol: 'AAPL', name: 'Apple Inc.' },
@@ -207,309 +212,47 @@ export default function Dashboard() {
       />
 
       <main className="flex-1 flex flex-col relative h-full overflow-hidden">
-        <header className="h-16 flex items-center justify-between px-8 border-b border-zinc-100 sticky top-0 bg-white/80 backdrop-blur-md z-20">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-            <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Terminal V1.5</h1>
-          </div>
-          
-          <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
-            {['fundamental', 'technical'].map((type) => (
-              <button 
-                key={type}
-                onClick={() => {
-                  setAgentType(type);
-                  // If we already have data, re-analyze automatically with new agent type
-                  if (stockData?.symbol) {
-                    executeAnalysis(stockData.symbol, type);
-                  }
-                }}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
-                  agentType === type ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
-                }`}
-              >
-                {type === 'fundamental' ? <Briefcase className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
-                <span className="capitalize">{type === 'fundamental' ? 'Warren Agent' : 'Quant Agent'}</span>
-              </button>
-            ))}
-          </div>
-        </header>
+        <DashboardHeader 
+          agentType={agentType}
+          onAgentTypeChange={setAgentType}
+          stockData={stockData}
+          executeAnalysis={executeAnalysis}
+        />
 
-        {/* WORKSPACE AREA: DUA KOLOM */}
+        {/* WORKSPACE AREA */}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
-          {activeMenu === 'dashboard' ? (
-            <div className="h-full">
-              {!stockData && !loading && !error && (
-                <div className="mt-32 text-center animate-in fade-in zoom-in duration-700">
-                  <div className="w-20 h-20 bg-zinc-50 border border-zinc-100 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-sm">
-                    <Layout className="w-10 h-10 text-zinc-900" />
-                  </div>
-                  <h2 className="text-3xl font-black tracking-tighter text-zinc-900 mb-4">Awaiting Ticker Selection.</h2>
-                  <p className="text-zinc-400 text-sm font-medium uppercase tracking-widest">Select an asset below to initialize workspace</p>
-                </div>
-              )}
-
-              {loading && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-8 h-full">
-                  <div className="lg:col-span-7 space-y-4 animate-pulse">
-                    <div className="h-64 bg-zinc-50 rounded-3xl" />
-                    <div className="h-96 bg-zinc-50 rounded-3xl" />
-                  </div>
-                  <div className="lg:col-span-5 animate-pulse">
-                    <div className="h-full bg-zinc-50 rounded-3xl" />
-                  </div>
-                </div>
-              )}
-
-              {stockData && !loading && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 min-h-full">
-                  
-                  {/* KOLOM KIRI: FUNDAMENTAL INSIGHTS */}
-                  <div className="lg:col-span-7 p-8 border-r border-zinc-100 overflow-y-auto">
-                    <div className="flex items-center gap-2 mb-6">
-                       <Bot className="w-5 h-5 text-zinc-900" />
-                       <h2 className="font-black uppercase tracking-tight text-zinc-400 text-sm">AI Agent Analysis</h2>
-                    </div>
-
-                    <QuantCard 
-                      data={stockData} 
-                      isWatchlisted={watchlist.some(w => w.ticker === stockData.symbol)} 
-                      onToggleWatchlist={toggleWatchlist} 
-                    />
-
-                    <MarkdownRenderer className="bg-white text-zinc-800 text-[15px]">
-                      {analysis}
-                    </MarkdownRenderer>
-                  </div>
-
-                  {/* KOLOM KANAN: CHART & TECHNICAL TOOLS */}
-                  <div className="lg:col-span-5 p-8 bg-zinc-50/30 sticky top-0 h-screen overflow-y-auto scrollbar-hide">
-                    <div className="flex items-center justify-between mb-6">
-                       <div className="flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-zinc-400" />
-                          <h2 className="font-black uppercase tracking-tight text-zinc-400 text-sm">Visual Terminal</h2>
-                       </div>
-                    </div>
-
-                    <PriceChart 
-                      data={stockData.historicalData} 
-                      ticker={stockData.symbol} 
-                    />
-
-                    {/* Tambahan: Info Card Kecil untuk kesan "Ramai" */}
-                    <div className="mt-6 p-6 bg-zinc-900 rounded-2xl text-white shadow-xl">
-                       <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Market Sentiment</p>
-                       <p className="text-sm font-medium leading-snug">
-                          {stockData.symbol} exhibits {stockData.quantitative.trend} trend characteristics over the 60-day window with an RSI of {stockData.quantitative.rsi14.toFixed(2)}.
-                       </p>
-                    </div>
-                  </div>
-
-                </div>
-              )}
-            </div>
-          ) : activeMenu === 'agents' ? (
-            <div className="p-8 h-full overflow-y-auto">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-zinc-900">Agent Market</h2>
-                  <p className="text-zinc-500 text-sm mt-1">Select and deploy AI models for your analysis workspace.</p>
-                </div>
-                <div className="px-3 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-full border border-orange-100 uppercase tracking-wider">
-                  Active Model: {selectedModel.split('/')[1] || selectedModel}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-               {[
-                  {
-                    id: 'google/gemini-2.0-flash-001',
-                    name: 'Gemini Flash 2.0',
-                    provider: 'Google DeepMind',
-                    desc: 'Multimodal model optimized for high-speed financial analysis.',
-                    tags: ['Fast', 'Free Tier']
-                  },
-                  {
-                    id: 'meta-llama/llama-3.1-8b-instruct',
-                    name: 'Llama 3.1 8B',
-                    provider: 'Meta AI',
-                    desc: 'Balanced open-source model with strong reasoning capabilities.',
-                    tags: ['Open Source']
-                  },
-                  {
-                    id: 'mistralai/mistral-small-24b-instruct-2501:free',
-                    name: 'Mistral Small 3',
-                    provider: 'Mistral AI',
-                    desc: 'Efficient model specializing in concise and direct answers.',
-                    tags: ['Fast', 'Low Latency']
-                  },
-                  {
-                    id: 'openai/o3-mini-high',
-                    name: 'O3 Mini High',
-                    provider: 'OpenAI',
-                    desc: 'Advanced model for complex reasoning and deep analysis tasks.',
-                    tags: ['Reasoning', 'Complex Logic']
-                  },
-                  { 
-                    id: 'qwen/qwen-turbo',
-                    name: 'Qwen Turbo',
-                    provider: 'Alibaba Cloud',
-                    desc: 'High-performance model with strong multilingual capabilities.',
-                    tags: ['Multilingual', 'Enterprise']
-                  }
-                ].map((agent) => (
-                  <div key={agent.id} className={`group bg-white border rounded-2xl p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden ${selectedModel === agent.id ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-300'}`}>
-                    
-                    {selectedModel === agent.id && (
-                      <div className="absolute top-0 right-0 p-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                      </div>
-                    )}
-
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-10 h-10 bg-zinc-50 rounded-xl flex items-center justify-center border border-zinc-100 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
-                        <VendorIcon provider={agent.provider} />
-                      </div>
-                      <span className="text-[10px] font-bold text-zinc-400 bg-zinc-50 px-2 py-1 rounded-md uppercase tracking-wider">
-                        {agent.provider}
-                      </span>
-                    </div>
-
-                    <h3 className="font-bold text-zinc-900 mb-1">{agent.name}</h3>
-                    <p className="text-xs text-zinc-500 leading-relaxed mb-4 min-h-[40px]">{agent.desc}</p>
-
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {agent.tags.map(tag => (
-                        <span key={tag} className="text-[10px] font-semibold text-zinc-500 bg-zinc-50 px-2 py-1 rounded-md border border-zinc-100">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <button 
-                      onClick={() => {
-                        setSelectedModel(agent.id);
-                        // Optional: Navigate back to dashboard automatically
-                        // setActiveMenu('dashboard');
-                      }}
-                      className={`w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${
-                        selectedModel === agent.id
-                          ? 'bg-orange-50 text-orange-600 border border-orange-200 cursor-default'
-                          : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg hover:scale-[1.02]'
-                      }`}
-                    >
-                      {selectedModel === agent.id ? 'Deployed' : 'Deploy Model'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : activeMenu === 'settings' ? (
-            <div className="p-8 h-full overflow-y-auto">
-              <h2 className="text-2xl font-black tracking-tight text-zinc-900 mb-6">Settings</h2>
-              
-              <div className="space-y-6 max-w-2xl">
-                {/* Account Settings */}
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200">
-                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
-                       <Layout className="w-4 h-4" />
-                    </div>
-                    Account Preferences
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center py-2 border-b border-zinc-50">
-                      <div>
-                        <p className="font-medium text-sm">Email Notification</p>
-                        <p className="text-xs text-zinc-500">Receive daily market summaries</p>
-                      </div>
-                      <div className="w-12 h-6 bg-zinc-200 rounded-full relative cursor-pointer">
-                        <div className="w-4 h-4 bg-white rounded-full absolute top-1 left-1" />
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                      <div>
-                        <p className="font-medium text-sm">Dark Mode</p>
-                        <p className="text-xs text-zinc-500">Toggle application theme</p>
-                      </div>
-                       <div className="w-12 h-6 bg-zinc-900 rounded-full relative cursor-pointer">
-                        <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* API & Data Settings */}
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200">
-                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                     <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
-                       <Activity className="w-4 h-4" />
-                    </div>
-                    Data Sources
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-bold text-zinc-700">Yahoo Finance API</span>
-                      </div>
-                      <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded">CONNECTED</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-bold text-zinc-700">OpenRouter AI</span>
-                      </div>
-                      <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded">OPERATIONAL</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subscription Plan */}
-                <div className="bg-zinc-900 p-6 rounded-2xl text-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-                  <h3 className="font-bold text-lg mb-2 relative z-10">Pro Plan</h3>
-                  <p className="text-zinc-400 text-sm mb-6 relative z-10">Your subscription is active until Dec 2026.</p>
-                  <button className="w-full py-3 bg-white text-zinc-900 font-bold rounded-xl text-sm hover:bg-zinc-100 transition-colors relative z-10">
-                    Manage Subscription
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {activeMenu === 'dashboard' && (
+            <DashboardView
+              stockData={stockData}
+              analysis={analysis}
+              watchlist={watchlist}
+              toggleWatchlist={toggleWatchlist}
+              loading={loading}
+              error={error}
+            />
+          )}
+          {activeMenu === 'agents' && (
+            <AgentsView
+              selectedModel={selectedModel}
+              onModelSelect={setSelectedModel}
+            />
+          )}
+          {activeMenu === 'settings' && (
+            <SettingsView />
+          )}
+          {activeMenu !== 'dashboard' && activeMenu !== 'agents' && activeMenu !== 'settings' && (
             <div className="text-center py-20 text-zinc-400 uppercase tracking-widest">Module Under Development</div>
           )}
         </div>
 
-        {/* INPUT SELECTOR */}
-        <div className="p-8 border-t border-zinc-100 bg-white z-30">
-          <form onSubmit={handleAnalyze} className="max-w-3xl mx-auto relative group">
-            <select
-              value={ticker}
-              onChange={(e) => {
-                const newTicker = e.target.value;
-                setTicker(newTicker);
-                // If in Agent Market, switch back to workspace when selecting a stock
-                if (activeMenu === 'agents') {
-                  setActiveMenu('dashboard');
-                }
-              }}
-              className="w-full pl-8 pr-20 py-5 bg-zinc-50 border-2 border-zinc-100 rounded-2xl text-zinc-900 font-bold text-xl appearance-none cursor-pointer outline-none focus:border-zinc-900 transition-all shadow-sm"
-            >
-              <option value="" disabled>SELECT ASSET TERMINAL...</option>
-              {SUPPORTED_TICKERS.map((t) => (
-                <option key={t.symbol} value={t.symbol}>{t.symbol} — {t.name}</option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              disabled={loading || !ticker}
-              className="absolute right-3 top-3 bottom-3 px-6 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-all flex items-center"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </form>
-        </div>
+        <TickerSelector
+          ticker={ticker}
+          onTickerChange={setTicker}
+          onAnalyze={handleAnalyze}
+          loading={loading}
+          activeMenu={activeMenu}
+          onMenuChange={setActiveMenu}
+        />
       </main>
     </div>
   )
