@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { 
   Bot, Activity, BrainCircuit, Sparkles, LineChart, FileText, 
-  BarChart3, CheckCircle2, CircleDashed, TerminalSquare, Building2, MessageSquareText, Loader2, Network
+  BarChart3, CheckCircle2, CircleDashed, TerminalSquare, Building2, MessageSquareText, Loader2, Network, Cpu
 } from 'lucide-react'
 import { QuantCard } from '@/components/dashboard/QuantCard'
 import { PriceChart } from '@/components/dashboard/PriceChart'
@@ -112,20 +112,31 @@ export function DashboardView({ stockData, analysis, watchlist, toggleWatchlist,
   // --- STATE 1: IDLE / WELCOME SCREEN ---
   if (!stockData && !loading && !error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in duration-700">
-        <div className="relative mb-8 group cursor-default">
-          <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-          <div className="w-24 h-24 bg-white border border-zinc-100 rounded-3xl flex items-center justify-center shadow-xl relative z-10">
-            <Bot className="w-12 h-12 text-zinc-900" />
-          </div>
+      <div className="h-full flex flex-col relative overflow-hidden bg-white">
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.015]">
+           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
         </div>
-        <h2 className="text-4xl font-black tracking-tighter text-zinc-900 mb-4">
-          Lumo <span className="text-orange-600">Workspace</span>
-        </h2>
-        <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest max-w-md leading-relaxed">
-          AI-Powered Financial Research Terminal.<br/>
-          Select a market hot spot below or enter a prompt.
-        </p>
+
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in duration-700 relative z-10">
+          <div className="relative mb-8 group cursor-default">
+            <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <div className="w-24 h-24 bg-white border border-zinc-100 rounded-3xl flex items-center justify-center shadow-xl relative z-10">
+              <Bot className="w-12 h-12 text-zinc-900 thin-robotic-accent" />
+            </div>
+            {/* HUD Elements around the bot icon */}
+            <div className="absolute -top-4 -right-4 w-8 h-8 rounded-full border border-orange-200 bg-white flex items-center justify-center animate-pulse">
+               <Cpu className="w-4 h-4 text-orange-500" />
+            </div>
+          </div>
+          <h2 className="text-4xl font-black tracking-tighter text-zinc-900 mb-4">
+            Lumo <span className="text-orange-600">Workspace</span>
+          </h2>
+          <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest max-w-md leading-relaxed">
+            AI-Powered Financial Research Terminal.<br/>
+            Select a market hot spot below or enter a prompt.
+          </p>
+        </div>
       </div>
     )
   }
@@ -316,6 +327,53 @@ export function DashboardView({ stockData, analysis, watchlist, toggleWatchlist,
         </div>
 
         <div className="flex-1 p-6 overflow-y-auto scrollbar-hide space-y-6">
+          {/* Live Market Feed Section */}
+          <div className="bg-white p-5 rounded-3xl shadow-sm border border-zinc-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Live Market Feed</h3>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] text-zinc-400 font-medium">LIVE</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {/* Dummy Market Data */}
+              {[
+                { symbol: 'AAPL', price: 182.52, change: 2.34, changePercent: 1.30, volume: '45.2M' },
+                { symbol: 'NVDA', price: 875.28, change: -15.67, changePercent: -1.76, volume: '32.8M' },
+                { symbol: 'MSFT', price: 415.26, change: 5.89, changePercent: 1.44, volume: '28.5M' },
+                { symbol: 'GOOGL', price: 138.21, change: 1.23, changePercent: 0.90, volume: '22.1M' },
+                { symbol: 'TSLA', price: 248.42, change: -8.76, changePercent: -3.41, volume: '67.3M' },
+                { symbol: 'AMZN', price: 155.89, change: 3.45, changePercent: 2.26, volume: '31.7M' },
+                { symbol: 'META', price: 484.67, change: 7.23, changePercent: 1.51, volume: '18.9M' },
+                { symbol: 'NFLX', price: 689.45, change: -12.34, changePercent: -1.76, volume: '8.2M' }
+              ].map((stock, index) => (
+                <div key={stock.symbol} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-zinc-50 transition-colors animate-in slide-in-from-left-2" style={{animationDelay: `${index * 50}ms`}}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-zinc-100 to-zinc-200 rounded-lg flex items-center justify-center">
+                      <span className="text-xs font-bold text-zinc-600">{stock.symbol.slice(0, 2)}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-zinc-900">{stock.symbol}</p>
+                      <p className="text-[10px] text-zinc-400 uppercase tracking-wider">NASDAQ</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-zinc-900">${stock.price.toFixed(2)}</p>
+                    <div className={`flex items-center gap-1 text-xs font-medium ${stock.change >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <span>{stock.change >= 0 ? '▲' : '▼'}</span>
+                      <span>{Math.abs(stock.change).toFixed(2)} ({stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-wider">VOL</p>
+                    <p className="text-xs font-medium text-zinc-600">{stock.volume}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {stockData?.historicalData ? (
             <div className="animate-in slide-in-from-right-4 duration-700 space-y-6">
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-zinc-200">

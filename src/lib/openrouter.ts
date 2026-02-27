@@ -1,5 +1,70 @@
 // src/lib/openrouter.ts
 
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MAX_RETRIES = 5;
+const TIMEOUT_MS = 60_000; // 60 seconds
+
+/**
+ * Enhanced fetch with longer retries and explicit connection management
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      // Pada attempt > 1, kita bisa coba tambahkan hint ke server untuk tidak reuse connection
+      const currentOptions = {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          ...options.headers,
+          ...(attempt > 1 ? { "Connection": "close" } : {})
+        }
+      };
+
+      const response = await fetch(url, currentOptions);
+      clearTimeout(timer);
+      
+      // Jika server mengembalikan 429 (Rate Limit) atau 502/503/504, kita juga retry
+      if (response.status === 429 || response.status >= 502) {
+         console.warn(`[OpenRouter] Server returned ${response.status}. Retrying...`);
+         throw new Error(`HTTP ${response.status}`);
+      }
+
+      return response;
+    } catch (err: any) {
+      clearTimeout(timer);
+
+      const isTransient =
+        err.code === "ECONNRESET" ||
+        err.code === "ETIMEDOUT" ||
+        err.code === "ECONNREFUSED" ||
+        err.name === "AbortError" ||
+        err.message?.includes("fetch failed") ||
+        err.message?.includes("HTTP");
+
+      console.warn(
+        `[OpenRouter] Attempt ${attempt}/${retries} failed: ${err.message}${err.code ? ` (${err.code})` : ''}`
+      );
+
+      if (!isTransient || attempt === retries) {
+        throw err;
+      }
+
+      // Longer backoff: 2s, 4s, 8s, 16s
+      const delay = 1000 * Math.pow(2, attempt);
+      console.log(`[OpenRouter] Stable backoff: ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("fetchWithRetry: exhausted retries");
+}
+
 export async function analyzeStock(ticker: string, stockData: any, apiKey: string, agentType: string, selectedModel: string = "anthropic/claude-3-haiku") {
   
   let systemPrompt = "";
@@ -73,16 +138,16 @@ export async function analyzeStock(ticker: string, stockData: any, apiKey: strin
   const cleanApiKey = apiKey.replace(/[\r\n\s]+/g, '');
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetchWithRetry(OPENROUTER_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${cleanApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lumoagent.vercel.app", 
+        "HTTP-Referer": "https://lumoagent.vercel.app",
         "X-Title": "LumoAgent Terminal"
       },
       body: JSON.stringify({
-        model: selectedModel, 
+        model: selectedModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }

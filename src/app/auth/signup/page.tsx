@@ -34,6 +34,7 @@ export default function SignUp() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
@@ -75,16 +76,41 @@ export default function SignUp() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       })
 
-      if (error) {
-        setError(error.message)
-      } else {
-        setSuccess(true)
+      if (signUpError) {
+        setError(signUpError.message)
+        return
       }
+
+      // If Supabase returned a session directly (email confirmation disabled), go straight to dashboard
+      if (signUpData?.session) {
+        setRedirecting(true)
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1500)
+        return
+      }
+
+      // Email confirmation is enabled — attempt auto sign-in anyway
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (!signInError && signInData?.session) {
+        setRedirecting(true)
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1500)
+        return
+      }
+
+      // Fallback: account created but email confirmation still required
+      setSuccess(true)
     } catch (err) {
       setError('An unexpected error occurred')
     } finally {
@@ -101,10 +127,10 @@ export default function SignUp() {
             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 ring-8 ring-green-50/50">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">Check Your Email</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">Account Created!</h1>
             <p className="text-slate-600 mb-8 text-lg">
-              We've sent a verification link to <span className="font-semibold text-slate-900">{email}</span>.
-              Please confirm your email to start using LumoAgent.
+              Your account for <span className="font-semibold text-slate-900">{email}</span> is ready.
+              Sign in now to start using LumoAgent.
             </p>
             <Link
               href="/auth/signin"
@@ -231,10 +257,15 @@ export default function SignUp() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || redirecting}
                   className="w-full bg-gradient-to-r from-[#FF8C00] to-[#E67E00] hover:from-[#E67E00] hover:to-[#CC7000] disabled:opacity-70 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-semibold shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center mt-6"
                 >
-                  {loading ? (
+                  {redirecting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Redirecting to dashboard...
+                    </>
+                  ) : loading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Creating account...

@@ -13,13 +13,12 @@ Ca : [TBD]
 
 <p align="center">
   <a href="./README.md">English</a> ·
-  <a href="./README.id.md">Bahasa Indonesia</a> ·
   <a href="./README.zh.md">中文</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Danann/lumoagent/actions"><img src="https://github.com/Danann/lumoagent/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/Danann/lumoagent"><img src="https://codecov.io/gh/Danann/lumoagent/branch/main/graph/badge.svg" alt="Codecov"></a>
+  <a href="https://github.com/decimasudo/lumoagent/actions"><img src="https://github.com/decimasudo/lumoagent/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/decimasudo/lumoagent"><img src="https://codecov.io/gh/decimasudo/lumoagent/branch/main/graph/badge.svg" alt="Codecov"></a>
   <br>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-14.2+-000000?style=flat&logo=next.js&logoColor=white" alt="Next.js"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript"></a>
@@ -83,7 +82,7 @@ Traditional stock analysis is slow and fragmented. LumoAgent centralizes the ent
 ### 1. Installation
 
 ```bash
-git clone https://github.com/Danann/lumoagent.git
+git clone https://github.com/decimasudo/lumoagent.git
 cd lumoagent
 pnpm install
 ```
@@ -239,7 +238,7 @@ No. While it provides a 3D visual presence, its state is synchronized with the *
 
 ## Community & Contributing
 
-Join the discussion on our [GitHub Discussions](https://github.com/Danann/lumoagent/discussions) or follow the developer on [X (Twitter)](https://x.com/clawry82).
+Join the discussion on our [GitHub Discussions](https://github.com/decimasudo/lumoagent/discussions) or follow the developer on [X (Twitter)](https://x.com/clawry82).
 
 ### Quick Contribution Guide
 
@@ -252,13 +251,13 @@ Join the discussion on our [GitHub Discussions](https://github.com/Danann/lumoag
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Danann/lumoagent&type=date)](https://star-history.com/#Danann/lumoagent&date)
+[![Star History Chart](https://api.star-history.com/svg?repos=decimasudo/lumoagent&type=date)](https://star-history.com/#decimasudo/lumoagent&date)
 
 ---
 
 ## License
 
-[MIT](./LICENSE) -- Created by Danann.
+[MIT](./LICENSE) -- Created by decimasudo.
 
 ## Links
 

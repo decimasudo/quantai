@@ -40,38 +40,46 @@ export function Sidebar({
 
 
   return (
-    <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col justify-between hidden md:flex">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pb-4">
+    <aside className="w-64 bg-white border-r border-zinc-100 flex flex-col justify-between hidden md:flex relative">
+      {/* Decorative vertical line */}
+      <div className="absolute right-[-1px] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-orange-500/20 to-transparent"></div>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pb-4 relative z-10">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-zinc-100 sticky top-0 bg-white z-10">
-          <div className="w-8 h-8 bg-white border-2 border-orange-200 rounded-lg flex items-center justify-center mr-3 shadow-sm p-1">
-            <img src="/logo.jpeg" alt="LumoAgent" className="w-full h-full rounded" />
+        <div className="h-16 flex items-center px-6 border-b border-zinc-50 sticky top-0 bg-white/80 backdrop-blur-md z-10">
+          <div className="w-8 h-8 bg-white border-2 border-zinc-100 rounded-lg flex items-center justify-center mr-3 shadow-sm p-1 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <img src="/logo.jpeg" alt="LumoAgent" className="w-full h-full rounded relative z-10" />
           </div>
-          <span className="font-bold text-xl tracking-tight text-zinc-900">LumoAgent</span>
+          <span className="font-bold text-lg tracking-tight text-zinc-900">
+            Lumo<span className="text-orange-600">Hub</span>
+          </span>
         </div>
 
         {/* Main Menu */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1.5 pt-6">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveMenu(item.id)}
-              className={`group w-full flex items-center space-x-3 px-3 py-2.5 rounded-md transition-all ${
+              className={`group w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
                 activeMenu === item.id 
-                ? 'bg-zinc-100 text-zinc-900 font-semibold shadow-sm' 
+                ? 'bg-zinc-900 text-white shadow-lg shadow-zinc-200' 
                 : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
               }`}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="flex-1 text-left flex items-center justify-between">
+              {activeMenu === item.id && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+              )}
+              <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-orange-400' : ''}`} />
+              <span className="flex-1 text-left flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                 {item.label}
                 {item.id === 'dashboard' && isAnalyzing && (
-                  <span className="flex items-center h-full ml-2">
-                    <span className="relative flex h-2 w-2">
+                  <span className="flex items-center">
+                    <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
                     </span>
-                   <span className="text-[10px] ml-2 font-normal text-muted-foreground hidden group-hover:block transition-all opacity-0 group-hover:opacity-100">Analyzing...</span>
                   </span>
                 )}
               </span>
@@ -81,19 +89,22 @@ export function Sidebar({
 
         {/* Watchlist Section (Daya Ingat Portofolio) */}
         {watchlist.length > 0 && (
-          <div className="px-4 mt-2 mb-2 animate-in fade-in duration-500">
-            <div className="flex items-center space-x-2 px-2 mb-3">
-              <Star className="w-4 h-4 text-amber-500" fill="currentColor" />
-              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Watchlist</span>
+          <div className="px-4 mt-8 mb-2 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between px-2 mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-1 h-3 bg-orange-500 rounded-full"></div>
+                <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Watchlist</span>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-300">{watchlist.length.toString().padStart(2, '0')}</span>
             </div>
             <div className="space-y-1">
               {watchlist.map((item) => (
-                <div key={item.id} className="flex items-center justify-between group px-3 py-2 rounded-md hover:bg-zinc-50 transition-all border border-transparent hover:border-zinc-100">
+                <div key={item.id} className="flex items-center justify-between group px-3 py-2.5 rounded-xl hover:bg-zinc-50 transition-all border border-transparent hover:border-zinc-100">
                   <button
                     onClick={() => onSelectWatchlist(item.ticker)}
                     className="flex-1 text-left flex flex-col overflow-hidden"
                   >
-                    <span className="text-sm font-bold text-zinc-700 group-hover:text-zinc-900 truncate uppercase">
+                    <span className="text-xs font-bold text-zinc-700 group-hover:text-zinc-900 truncate uppercase tracking-tight">
                       {item.ticker}
                     </span>
                   </button>

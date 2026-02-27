@@ -11,9 +11,11 @@ import {
   Shield,
   Zap,
   Github,
+  PlayCircle,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { TestDriveModal } from '@/components/dashboard/TestDriveModal'
 
 interface Skill {
   id: number
@@ -35,6 +37,7 @@ export default function SkillDetailPage() {
   const [copied, setCopied] = useState(false)
   const [skill, setSkill] = useState<Skill | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showTestDrive, setShowTestDrive] = useState(false)
 
   useEffect(() => {
     const fetchSkill = async () => {
@@ -82,6 +85,11 @@ export default function SkillDetailPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 px-6 py-8">
 
+      {/* Test Drive Modal */}
+      {showTestDrive && (
+        <TestDriveModal skill={skill} onClose={() => setShowTestDrive(false)} />
+      )}
+
       {/* Breadcrumb / Back */}
       <div className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 transition-colors">
         <ArrowLeft className="w-4 h-4" />
@@ -110,6 +118,14 @@ export default function SkillDetailPage() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4">
+          {/* Test Drive Button */}
+          <button
+            onClick={() => setShowTestDrive(true)}
+            className="flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:-translate-y-0.5 font-semibold"
+          >
+            <PlayCircle className="w-5 h-5" />
+            <span>Test Drive</span>
+          </button>
           <a
             href={skill.github_url}
             target="_blank"
