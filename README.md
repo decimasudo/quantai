@@ -1,5 +1,5 @@
-https://x.com/Lumoagent </br>
-Contract Address: [TBD]
+Official X Account: https://x.com/Lumoagent </br>
+Contract Address: 
 
 <p align="center">
   <img src="public/logo.jpeg" alt="LumoAgent" width="180px" style="border-radius: 20px; border: 2px solid #f97316;">
