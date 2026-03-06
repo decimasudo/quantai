@@ -1,150 +1,143 @@
-'use client'
-
-import { Activity, Star, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import React from 'react';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  Activity, 
+  BarChart2, 
+  PieChart,
+  Star,
+  Target
+} from 'lucide-react';
 
 interface QuantCardProps {
-  data: any
-  isWatchlisted?: boolean
-  onToggleWatchlist?: () => void
+  data: any;
+  isWatchlisted: boolean;
+  onToggleWatchlist: () => void;
 }
 
-export function QuantCard({ data, isWatchlisted = false, onToggleWatchlist }: QuantCardProps) {
-  if (!data) return null
-  
-  const q = data.quantitative || {}
-
-  // 1. Logika Warna & Status RSI
-  const rsi = q.rsi14 || 0
-  let rsiColor = 'text-zinc-900'
-  let rsiStatus = 'Neutral'
-  if (rsi >= 70) {
-    rsiColor = 'text-red-600'
-    rsiStatus = 'Overbought'
-  } else if (rsi <= 30 && rsi > 0) {
-    rsiColor = 'text-cyan-600'
-    rsiStatus = 'Oversold'
+export function QuantCard({ data, isWatchlisted, onToggleWatchlist }: QuantCardProps) {
+  if (!data || !data.quantitative) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 glass-card border border-white/5 rounded-3xl opacity-50">
+        <Activity className="w-10 h-10 text-slate-500 mb-4 animate-pulse" />
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Telemetry Data Unavailable</p>
+      </div>
+    );
   }
 
-  // 2. Logika Warna Trend
-  const isBullish = q.trend === 'Bullish'
-  const trendColor = isBullish ? 'text-cyan-600' : 'text-red-600'
-  const TrendIcon = isBullish ? TrendingUp : TrendingDown
+  const { quantitative } = data;
+
+  const MetricItem = ({ label, value, icon: Icon, color = "text-stellar" }: { label: string, value: string | number, icon: any, color?: string }) => (
+    <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.05] transition-colors group">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors ${color}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+      </div>
+      <span className="text-sm font-black text-slate-200 tracking-wide">{value}</span>
+    </div>
+  );
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-5 pb-4 border-b border-zinc-100">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* Header & Watchlist Button */}
+      <div className="flex items-center justify-between glass-card p-5 border border-white/5 rounded-3xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-stellar/10 blur-[40px] rounded-full pointer-events-none" />
         
-        {/* Title Area */}
-        <div className="flex items-center space-x-2">
-          <Activity className="w-5 h-5 text-zinc-900" />
-          <h3 className="font-bold text-zinc-900 tracking-tight">Quantitative Dashboard: {data.symbol}</h3>
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="p-3 bg-void border border-stellar/30 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+            <Target className="w-6 h-6 text-stellar" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">Quantitative Metrics</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Real-time Asset Telemetry</p>
+          </div>
         </div>
 
-        {/* WATCHLIST BUTTON */}
-        {onToggleWatchlist && (
-          <button 
-            onClick={onToggleWatchlist}
-            className={`p-2.5 rounded-xl transition-all flex items-center justify-center shadow-sm ${
-              isWatchlisted 
-              ? 'bg-amber-100 text-amber-500 border border-amber-200 hover:bg-amber-200' 
-              : 'bg-zinc-50 text-zinc-400 border border-zinc-200 hover:bg-zinc-100 hover:text-zinc-600'
-            }`}
-            title={isWatchlisted ? "Remove from Watchlist" : "Add to Watchlist"}
-          >
-            <Star className="w-4 h-4" fill={isWatchlisted ? "currentColor" : "none"} strokeWidth={2.5} />
-          </button>
+        <button
+          onClick={onToggleWatchlist}
+          className={`relative z-10 flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 border
+            ${isWatchlisted 
+              ? 'bg-stellar/10 text-stellar border-stellar/30 shadow-[0_0_20px_rgba(34,211,238,0.2)]' 
+              : 'bg-white/5 text-slate-400 border-white/10 hover:text-white hover:bg-white/10'}`}
+        >
+          <Star className={`w-4 h-4 ${isWatchlisted ? 'fill-stellar' : ''}`} />
+          {isWatchlisted ? 'Tracked' : 'Track Asset'}
+        </button>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {quantitative.marketCap && (
+          <MetricItem 
+            label="Market Cap" 
+            value={`$${(quantitative.marketCap / 1e9).toFixed(2)}B`} 
+            icon={PieChart} 
+          />
+        )}
+        
+        {quantitative.peRatio && (
+          <MetricItem 
+            label="P/E Ratio" 
+            value={quantitative.peRatio.toFixed(2)} 
+            icon={BarChart2} 
+          />
         )}
 
+        {quantitative.volume && (
+          <MetricItem 
+            label="24h Volume" 
+            value={quantitative.volume.toLocaleString()} 
+            icon={Activity} 
+          />
+        )}
+
+        {quantitative.fiftyTwoWeekHigh && (
+          <MetricItem 
+            label="52W High" 
+            value={`$${quantitative.fiftyTwoWeekHigh.toFixed(2)}`} 
+            icon={TrendingUp} 
+            color="text-emerald-400"
+          />
+        )}
+
+        {quantitative.fiftyTwoWeekLow && (
+          <MetricItem 
+            label="52W Low" 
+            value={`$${quantitative.fiftyTwoWeekLow.toFixed(2)}`} 
+            icon={TrendingDown} 
+            color="text-red-400"
+          />
+        )}
+
+        {quantitative.dividendYield !== undefined && (
+          <MetricItem 
+            label="Div Yield" 
+            value={`${(quantitative.dividendYield * 100).toFixed(2)}%`} 
+            icon={DollarSign} 
+          />
+        )}
       </div>
 
-      {/* Metrics Grid (Kini 8 Kotak untuk kesan "Ramai" dan Analitik) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        
-        {/* 1. Harga Saat Ini */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">Current Price</p>
-          <p className="text-xl font-black tracking-tight text-zinc-900">
-            ${data.currentPrice?.toFixed(2) || '0.00'}
-          </p>
-        </div>
-
-        {/* 2. Momentum Trend */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">Momentum Trend</p>
-          <div className="flex items-center space-x-1.5">
-            <TrendIcon className={`w-5 h-5 ${trendColor}`} strokeWidth={3} />
-            <p className={`text-xl font-black tracking-tight ${trendColor}`}>
-              {q.trend || 'N/A'}
-            </p>
+      {/* Momentum Indicator */}
+      <div className="glass-card p-5 border border-white/5 rounded-3xl mt-4">
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Neural Momentum Score</h4>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
+            <div 
+              className="h-full bg-gradient-to-r from-cyan-500 to-stellar rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)] transition-all duration-1000"
+              style={{ width: `${Math.min(100, Math.max(0, quantitative.momentumScore || 50))}%` }}
+            />
           </div>
+          <span className="text-sm font-black text-stellar w-12 text-right">
+            {quantitative.momentumScore || 50}/100
+          </span>
         </div>
-
-        {/* 3. RSI 14-Hari */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">RSI (14D)</p>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-widest border ${
-              rsiStatus === 'Overbought' ? 'bg-red-50 text-red-600 border-red-100' :
-              rsiStatus === 'Oversold' ? 'bg-cyan-50 text-cyan-600 border-cyan-100' :
-              'bg-zinc-100 text-zinc-500 border-zinc-200'
-            }`}>
-              {rsiStatus}
-            </span>
-          </div>
-          <p className={`text-xl font-black tracking-tight ${rsiColor}`}>
-            {rsi.toFixed(2)}
-          </p>
-        </div>
-
-        {/* 4. Risk Level */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative overflow-hidden">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
-            Risk Profile <AlertCircle className="w-3 h-3" />
-          </p>
-          <p className={`text-xl font-black tracking-tight ${
-            q.riskLevel === 'High' ? 'text-red-600' : 'text-cyan-600'
-          }`}>
-            {q.riskLevel || 'Unknown'}
-          </p>
-          {/* Aksen visual ringan jika risiko tinggi */}
-          {q.riskLevel === 'High' && (
-             <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-red-500/10 rounded-full blur-xl" />
-          )}
-        </div>
-
-        {/* 5. 20-Day SMA */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">20-Day SMA</p>
-          <p className="text-xl font-black tracking-tight text-zinc-900">
-            ${q.sma20?.toFixed(2) || '0.00'}
-          </p>
-        </div>
-
-        {/* 6. Volatilitas */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">Volatility (Std Dev)</p>
-          <p className="text-xl font-black tracking-tight text-zinc-900">
-            {q.volatility?.toFixed(2) || '0.00'}
-          </p>
-        </div>
-
-        {/* 7. 52-Week High */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">52W High</p>
-          <p className="text-xl font-black tracking-tight text-zinc-500">
-            ${data.week52High?.toFixed(2) || '0.00'}
-          </p>
-        </div>
-
-        {/* 8. 52-Week Low */}
-        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">52W Low</p>
-          <p className="text-xl font-black tracking-tight text-zinc-500">
-            ${data.week52Low?.toFixed(2) || '0.00'}
-          </p>
-        </div>
-
       </div>
+      
     </div>
-  )
+  );
 }

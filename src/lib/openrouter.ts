@@ -65,7 +65,7 @@ async function fetchWithRetry(
   throw new Error("fetchWithRetry: exhausted retries");
 }
 
-export async function analyzeStock(ticker: string, stockData: any, apiKey: string, agentType: string, selectedModel: string = "anthropic/claude-3-haiku") {
+export async function analyzeStock(ticker: string, stockData: any, apiKey: string, agentType: string, selectedModel: string = "google/gemini-2.5-flash-lite") {
   
   let systemPrompt = "";
   
@@ -143,8 +143,8 @@ export async function analyzeStock(ticker: string, stockData: any, apiKey: strin
       headers: {
         "Authorization": `Bearer ${cleanApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://jerril.vercel.app",
-        "X-Title": "Jerril Terminal"
+        "HTTP-Referer": "https://lumoagent.com",
+        "X-Title": "LumoAgent Neural Core"
       },
       body: JSON.stringify({
         model: selectedModel,
@@ -153,7 +153,8 @@ export async function analyzeStock(ticker: string, stockData: any, apiKey: strin
           { role: "user", content: userPrompt }
         ],
         temperature: 0.2
-      })
+      }),
+      keepalive: true
     });
 
     if (!response.ok) {

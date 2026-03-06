@@ -180,7 +180,7 @@ You are running inside a sandbox "Test Drive" environment. The user is testing w
         'X-Title': 'Jerril Skill Test Drive'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'google/gemini-2.5-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages

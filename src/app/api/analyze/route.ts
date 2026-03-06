@@ -33,11 +33,18 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Tangkap "ticker" yang sekarang berisi prompt penuh dari UI
-    const { ticker: promptText, agentType = 'fundamental', model = 'google/gemini-2.0-flash-001' } = body
+    // Tangkap "ticker" DAN "customPrompt" dari UI
+    const { ticker = '', customPrompt = '', agentType = 'fundamental', model: bodyModel = '' } = body
 
-    if (!promptText || typeof promptText !== 'string') {
-      return NextResponse.json({ success: false, error: 'Prompt is required' }, { status: 400 })
+    // Tentukan model: prioritas dari body, fallback ke default yang aman
+    const model = bodyModel || 'google/gemini-2.5-flash-lite'
+
+    // Gunakan customPrompt jika ada, jika tidak gunakan ticker.
+    const promptText = (customPrompt || ticker).trim()
+
+    if (!promptText) {
+      console.log(`[API] Error: Prompt is required. Body received:`, body);
+      return NextResponse.json({ success: false, error: 'Prompt or ticker is required' }, { status: 400 })
     }
 
     // Ekstrak simbol saham dari kalimat input user
@@ -64,19 +71,23 @@ export async function POST(request: NextRequest) {
     let aiAnalysis = ''
 
     if (openRouterKey) {
-      console.log(`[API] Calling analyzeStock with model ${model}...`);
-      
-      // Catatan: Jika suatu saat fungsi analyzeStock Anda diupdate agar bisa menerima prompt asli, 
-      // Anda bisa passing variabel `promptText` juga ke dalamnya.
-      // Saat ini kita pakai default: analyzeStock(tickerSymbol, stockData, ...)
-      aiAnalysis = await analyzeStock(tickerSymbol, stockData, openRouterKey, agentType, model)
-      
-      console.log(`[API] AI analysis completed`);
+      try {
+        console.log(`[API] Calling analyzeStock with model ${model}...`);
+        
+        // Catatan: Jika suatu saat fungsi analyzeStock Anda diupdate agar bisa menerima prompt asli, 
+        // Anda bisa passing variabel `promptText` juga ke dalamnya.
+        aiAnalysis = await analyzeStock(tickerSymbol, stockData, openRouterKey, agentType, model)
+        
+        console.log(`[API] AI analysis completed`);
+      } catch (aiError: any) {
+        console.error(`[API] AI analysis failed: ${aiError.message}`);
+        aiAnalysis = 'AI analysis is currently unavailable due to a connection issue. Please try again later or check your network connection.';
+      }
     } else {
-      return NextResponse.json({ success: false, error: 'OpenRouter API Key is missing.' }, { status: 500 })
+      aiAnalysis = 'OpenRouter API Key is missing. AI analysis is not available.';
     }
 
-    // 3. Simpan riwayat ke Supabase secara diam-diam (tidak menghentikan proses jika gagal)
+    // 3. Simpan riwayat ke Supabase secara diam-diam
     try {
       const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -84,7 +95,7 @@ export async function POST(request: NextRequest) {
       if (user) {
         await supabase.from('analysis_history').insert({
           user_id: user.id,
-          ticker: tickerSymbol, // Menyimpan ticker asli yang dianalisa (misal "AAPL")
+          ticker: tickerSymbol, 
           analysis_result: aiAnalysis
         })
       }
