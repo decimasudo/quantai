@@ -217,7 +217,7 @@ export default function RobotCanvas() {
   if (!mounted) return <div className="w-full h-full" />
 
   return (
-    <div className="w-full h-full absolute inset-0 cursor-move bg-gradient-to-b from-transparent to-slate-50/20">
+    <div className="w-full h-full absolute inset-0 cursor-move">
       <Canvas
         camera={{ position: [0, 0, 6], fov: 45 }}
         gl={{ antialias: true, alpha: true }}

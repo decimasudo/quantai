@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Bot, Cpu } from 'lucide-react'
+import { Bot, Cpu, Briefcase, Activity } from 'lucide-react'
 
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { DashboardView } from '@/components/dashboard/DashboardView'
