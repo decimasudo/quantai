@@ -1,7 +1,7 @@
 Official X Account: https://x.com/jerrilagent </br>
 Official Website: https://www.jerrilfinancialagent.site/
 
-Contract Address: 
+Contract Address: Ge45ZxTGm4q7A9ZTce8tVxyTTHSy3ujpB6eZC6Uopump
 
 <p align="center">
   <img src="public/logo.jpeg" alt="JerrilAgent" width="180px" style="border-radius: 20px; border: 2px solid #f97316;">
