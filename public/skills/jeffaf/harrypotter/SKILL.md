@@ -70,7 +70,7 @@ harrypotter search "hermione"     # Find character by name
 **Spell output:**
 ```
 ✨ Expelliarmus — Disarms your opponent
-✨ Lumos — Creates a small light at the wand's tip
+✨ Jerrils — Creates a small light at the wand's tip
 ✨ Avada Kedavra — The Killing Curse
 ```
 

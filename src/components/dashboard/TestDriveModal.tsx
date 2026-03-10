@@ -355,7 +355,7 @@ export function TestDriveModal({ skill, onClose }: TestDriveModalProps) {
             </button>
           </form>
           <p className="text-center text-[10px] text-slate-400 mt-2 font-medium">
-            Sandbox mode — powered by LumoAgent via OpenRouter
+            Sandbox mode — powered by JerrilAgent via OpenRouter
           </p>
         </div>
       </div>

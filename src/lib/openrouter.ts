@@ -143,7 +143,7 @@ export async function analyzeStock(ticker: string, stockData: any, apiKey: strin
       headers: {
         "Authorization": `Bearer ${cleanApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lumoagent.com",
+        "HTTP-Referer": "https://www.jerrilfinancialagent.site/",
         "X-Title": "LumoAgent Neural Core"
       },
       body: JSON.stringify({

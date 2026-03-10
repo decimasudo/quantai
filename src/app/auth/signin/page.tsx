@@ -95,7 +95,7 @@ export default function SignIn() {
               <Cpu className="w-6 h-6 text-stellar" />
             </div>
             <span className="text-xl font-black tracking-tighter text-white uppercase italic">
-              Lumo<span className="text-stellar">Agent</span>
+              Jerril<span className="text-stellar">Agent</span>
             </span>
           </Link>
         </div>

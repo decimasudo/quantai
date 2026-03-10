@@ -37,7 +37,7 @@ export function ThinkingProcess({ steps, content }: ThinkingProcessProps) {
           <Bot className="w-6 h-6 text-stellar relative z-10" />
         </div>
         <span className="font-bold tracking-wide text-slate-200 text-sm uppercase">
-          Lumo Neural Core has completed initial context mapping
+          Jerril Neural Core has completed initial context mapping
         </span>
       </div>
 
