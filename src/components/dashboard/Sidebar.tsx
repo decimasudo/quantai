@@ -11,6 +11,7 @@ import {
   Trash2,
   ChevronRight,
   Twitter,
+  Github,
   ShieldAlert,
   UserCircle
 } from 'lucide-react'
@@ -207,16 +208,28 @@ export function Sidebar({
       </div>
 
       {/* Foot Profile & Social */}
-      <div className="p-4 border-t border-white/5 bg-white/[0.01] space-y-3">
-        <a 
-          href="https://x.com/jerrilagent"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full p-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:stellar-border transition-all group"
-        >
-          <Twitter className="w-4 h-4 text-slate-400 group-hover:text-stellar" />
-          <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-[0.2em]">Join Community</span>
-        </a>
+      <div className="p-4 border-t border-white/5 bg-white/[0.01] space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <a 
+            href="https://x.com/jerrilagent"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:stellar-border transition-all group"
+          >
+            <Twitter className="w-4 h-4 text-slate-400 group-hover:text-stellar" />
+            <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-[0.2em]">X</span>
+          </a>
+
+          <a 
+            href="https://github.com/decimasudo/jerrilagent"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:stellar-border transition-all group"
+          >
+            <Github className="w-4 h-4 text-slate-400 group-hover:text-stellar" />
+            <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-[0.2em]">Github</span>
+          </a>
+        </div>
 
         <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
           <div className="flex items-center gap-3 overflow-hidden">

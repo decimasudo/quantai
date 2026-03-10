@@ -103,7 +103,7 @@ export function AgentsView({ selectedModel, onModelSelect }: AgentsViewProps) {
   }
 
   return (
-    <div className="min-h-full overflow-y-auto animate-in fade-in duration-700 bg-void relative selection:bg-stellar/20 cursor-crosshair">
+    <div className="min-h-full overflow-y-auto animate-in fade-in duration-700 bg-void relative selection:bg-stellar/20 cursor-default">
       {/* Interactive Space Background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-tr from-void-deep via-transparent to-stellar/5 pointer-events-none" />
@@ -239,7 +239,7 @@ export function AgentsView({ selectedModel, onModelSelect }: AgentsViewProps) {
       </div>
 
       {/* Skills Section */}
-      <div className="px-8 py-20 lg:px-16 lg:py-24 bg-void/50">
+      <div className="relative px-8 py-20 lg:px-16 lg:py-24 bg-void/50 z-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
             <div className="space-y-2">
